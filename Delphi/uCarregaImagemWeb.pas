@@ -108,7 +108,7 @@ end;
 
 procedure TfrmImgtoView.FormShow(Sender: TObject);
 begin
-    edtUrlImagem.Text := 'https://avatars.githubusercontent.com/u/26030963?v=4';
+    edtUrlImagem.Text := 'https://i.ibb.co/k1h5Bx6/644497-kosmos-planetyi-3d-art-2000x2000-www-Gde-Fon-com.jpg';
     Button2.Click; //test example
 end;
 
