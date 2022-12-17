@@ -74,24 +74,6 @@ begin
                 Jpeg.LoadFromStream(Strm);
                 APicture.Assign(Jpeg);
               end;
-
-              (* //poderá usar assim tbm
-               case AnsiIndexStr( ExtractFileExt(url) , ['jpg', 'jpeg','png']) of
-                0,1:
-                begin
-                  Strm.Position := 0;
-                  jPng.LoadFromStream(Strm);
-                  APicture.Assign(jPng);
-                end;
-                2:
-                begin
-                  Strm.Position := 0;
-                  Jpeg.LoadFromStream(Strm);
-                  APicture.Assign(Jpeg);
-                end;
-               end;
-               *)
-
            end;
         finally
           Strm.Free;
