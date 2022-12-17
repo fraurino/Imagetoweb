@@ -38,62 +38,71 @@ implementation
 
 procedure urltoimg(URL: string; APicture: TPicture);
 var
-  tt            : TThread;
+  Jpeg          : TJpegImage;
+  Jpng          : TPNGImage;
+  Strm          : TMemoryStream;
+  idhttp        : TIdHTTP;
+  IDSSLHandler  : TIdSSLIOHandlerSocketOpenSSL;
 begin
+      // exemplo de imagem 5000 x 5000
+      // https://i.ibb.co/k1h5Bx6/644497-kosmos-planetyi-3d-art-2000x2000-www-Gde-Fon-com.jpg
 
-    tt := TThread.CreateAnonymousThread
-      (
-      procedure
-      var
-        Jpeg          : TJpegImage;
-        Jpng          : TPNGImage;
-        Strm          : TMemoryStream;
-        idhttp        : TIdHTTP;
-        IDSSLHandler  : TIdSSLIOHandlerSocketOpenSSL;
-      begin
+      try
+        Screen.Cursor     := crHourGlass;
+        Jpeg              := TJPEGImage.Create;
+        jPng              := TPNGImage.Create;
+        Strm              := TMemoryStream.Create;
+        idhttp            := TIdHTTP.Create(nil);
+        IDSSLHandler      := TIdSSLIOHandlerSocketOpenSSL.Create;
+        idhttp.IOHandler  := IDSSLHandler;
+        IDSSLHandler.SSLOptions.Method := sslvTLSv1_2;
         try
-          Screen.Cursor     := crHourGlass;
-          Jpeg              := TJPEGImage.Create;
-          jPng              := TPNGImage.Create;
-          Strm              := TMemoryStream.Create;
-          idhttp            := TIdHTTP.Create(nil);
-          IDSSLHandler      := TIdSSLIOHandlerSocketOpenSSL.Create;
-          idhttp.IOHandler  := IDSSLHandler;
-          IDSSLHandler.SSLOptions.Method := sslvTLSv1_2;
-          try
-            idhttp.Get(URL, Strm);
-            if (Strm.Size > 0) then
-            begin
-              try
-                Strm.Position := 0;
-                Jpeg.LoadFromStream(Strm);
-                APicture.Assign(Jpeg);
-              except
+          idhttp.Get(url, Strm);
+
+           if (Strm.Size > 0) then
+           begin
+              if url.EndsWith('.png') then
+              begin
                 Strm.Position := 0;
                 jPng.LoadFromStream(Strm);
                 APicture.Assign(jPng);
               end;
-            end;
-          finally
-            Strm.Free;
-            Jpeg.Free;
-            jPng.Free;
-            idhttp.Free;
-            IDSSLHandler.Free;
-            Screen.Cursor := crDefault;
-          end;
-        except on e:Exception do
-          ShowMessage('ERROR: '+e.Message);
+
+              if url.EndsWith('.jpg') or url.EndsWith( '.jpeg' ) then
+              begin
+                Strm.Position := 0;
+                Jpeg.LoadFromStream(Strm);
+                APicture.Assign(Jpeg);
+              end;
+
+              (* //poderá usar assim tbm
+               case AnsiIndexStr( ExtractFileExt(url) , ['jpg', 'jpeg','png']) of
+                0,1:
+                begin
+                  Strm.Position := 0;
+                  jPng.LoadFromStream(Strm);
+                  APicture.Assign(jPng);
+                end;
+                2:
+                begin
+                  Strm.Position := 0;
+                  Jpeg.LoadFromStream(Strm);
+                  APicture.Assign(Jpeg);
+                end;
+               end;
+               *)
+
+           end;
+        finally
+          Strm.Free;
+          Jpeg.Free;
+          jPng.Free;
+          idhttp.Free;
+          IDSSLHandler.Free;
+          Screen.Cursor := crDefault;
         end;
-
-
-      end
-      );
-    tt.start();
-
-
-
-
+      except on e:Exception do ShowMessage('ERROR: '+e.Message);
+      end;
 
 end;
 
