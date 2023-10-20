@@ -5,8 +5,8 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, JPeg,  pngimage ,
-  IdBaseComponent,  IdTCPConnection, IdTCPClient, IdHTTP, IdSSLOpenSSL,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, JPeg,  pngimage ,  WinInet,
+  IdBaseComponent,  IdTCPConnection, IdTCPClient, IdHTTP, IdSSLOpenSSL, IOUtils,
   IdServerIOHandler, IdSSL, IdComponent;
 
 type
@@ -16,7 +16,6 @@ type
     Image1: TImage;
     Button2: TButton;
     procedure Button2Click(Sender: TObject);
-    procedure FormShow(Sender: TObject);
 
   private
     { Private declarations }
@@ -26,6 +25,54 @@ type
 var frmImgtoView: TfrmImgtoView;
 implementation
 {$R *.dfm}
+
+function LoadImageFromURL(const URL: string; ImageControl: TImage): boolean;
+var
+  hhInternet, hConnect: HINTERNET;
+  Buffer: array of Byte;
+  BytesRead: DWORD;
+  Stream: TMemoryStream;
+begin
+  Result := False;
+
+  hhInternet := InternetOpen('Delphi App', INTERNET_OPEN_TYPE_DIRECT, nil, nil, 0);
+  if Assigned(hhInternet) then
+  begin
+    hConnect := InternetOpenUrl(hhInternet, PChar(URL), nil, 0, INTERNET_FLAG_RELOAD, 0);
+    if Assigned(hConnect) then
+    begin
+      Stream := TMemoryStream.Create;
+      try
+        SetLength(Buffer, 1024);
+        repeat
+          if InternetReadFile(hConnect, @Buffer[0], Length(Buffer), BytesRead) then
+          begin
+            if BytesRead > 0 then
+              Stream.Write(Buffer[0], BytesRead);
+          end
+          else
+          begin
+            Break;
+          end;
+        until BytesRead = 0;
+
+        Stream.Position := 0;
+
+        // Carrega a imagem no TImage a partir do MemoryStream
+        ImageControl.Picture.LoadFromStream(Stream);
+
+        Result := True;
+      finally
+        Stream.Free;
+      end;
+
+      InternetCloseHandle(hConnect);
+    end;
+
+    InternetCloseHandle(hhInternet);
+  end;
+end;
+
 procedure urltoimg(URL: string; APicture: TPicture);
 var
   Jpeg          : TJpegImage;
@@ -34,12 +81,6 @@ var
   idhttp        : TIdHTTP;
   IDSSLHandler  : TIdSSLIOHandlerSocketOpenSSL;
 begin
-      // exemplo de imagem 5000 x 5000
-      // https://i.ibb.co/k1h5Bx6/644497-kosmos-planetyi-3d-art-2000x2000-www-Gde-Fon-com.jpg
-      
-      // exemplo de extensão webp. leia mais em https://github.com/Wykerd/delphi-webp
-      // https://dtffvb2501i0o.cloudfront.net/images/logos/embt_primary_logo_black_new.webp
-
       try
         Screen.Cursor     := crHourGlass;
         Jpeg              := TJPEGImage.Create;
@@ -55,28 +96,28 @@ begin
 
            if (Strm.Size > 0) then
            begin
+              Strm.Position := 0;
+
               if url.EndsWith('.png') then
               begin
-                Strm.Position := 0;
                 jPng.LoadFromStream(Strm);
                 APicture.Assign(jPng);
               end
               else
+              //imagem de exemplo https://wdglojamedicaweb.s3.sa-east-1.amazonaws.com/wdglojamedicaweb1506.jpg
+              if url.Contains('amazonaws')then //caso de erro JPEG error #53 em alguns links
+              begin
+                LoadImageFromURL(url, frmImgtoView.Image1 )
+              end
+              else
               if url.EndsWith('.jpg') or url.EndsWith( '.jpeg' ) then
               begin
-                Strm.Position := 0;
                 Jpeg.LoadFromStream(Strm);
                 APicture.Assign(Jpeg);
               end
               else
-              if url.EndsWith('.webp') then  //https://github.com/Wykerd/delphi-webp
-              begin
-               showmessage('extensão [webp] não implementada'+#10#13+'leia mais em https://github.com/Wykerd/delphi-webp');
-              end
-              else
               begin
                 try
-                  Strm.Position := 0;
                   jPng.LoadFromStream(Strm);
                   APicture.Assign(jPng);
                 except
@@ -101,15 +142,10 @@ begin
        end;
       end;
 end;
+
 procedure TfrmImgtoView.Button2Click(Sender: TObject);
 begin
  urltoimg(''+edtUrlImagem.Text+'', Image1.Picture);
-end;
-
-procedure TfrmImgtoView.FormShow(Sender: TObject);
-begin
-    edtUrlImagem.Text := 'https://i.ibb.co/k1h5Bx6/644497-kosmos-planetyi-3d-art-2000x2000-www-Gde-Fon-com.jpg';
-    Button2.Click; //test example
 end;
 
 end.
